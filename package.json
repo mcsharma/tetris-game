@@ -1,0 +1,33 @@
+{
+  "name": "Tetris",
+  "version": "1.0.0",
+  "description": "Tetris game in JS",
+  "main": "./dist/bundle.js",
+  "dependencies": {
+    "@types/jquery": "^1.10.31",
+    "@types/lodash": "^4.14.34",
+    "@types/react": "^16.0.0",
+    "@types/react-dom": "^15.5.2",
+    "jquery": "^3.1.0",
+    "lodash": "^4.15.0",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1"
+  },
+  "devDependencies": {
+    "css-loader": "^0.25.0",
+    "extract-text-webpack-plugin": "^1.0.1",
+    "less": "^2.7.1",
+    "less-loader": "^2.2.3",
+    "source-map-loader": "^0.1.5",
+    "style-loader": "^0.13.1",
+    "ts-loader": "^0.8.2",
+    "typescript": "^2.4.2",
+    "webpack": "^1.13.2",
+    "webpack-dev-server": "^1.15.1"
+  },
+  "scripts": {
+    "start": "./node_modules/.bin/webpack-dev-server --content-base public/"
+  },
+  "author": "mcsharma1990@gmail.com",
+  "license": "ISC"
+}
