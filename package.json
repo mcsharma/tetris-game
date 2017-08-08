@@ -8,6 +8,7 @@
     "@types/lodash": "^4.14.34",
     "@types/react": "^16.0.0",
     "@types/react-dom": "^15.5.2",
+    "github-fork-ribbon-css": "^0.2.1",
     "jquery": "^3.1.0",
     "lodash": "^4.15.0",
     "react": "^15.6.1",
@@ -26,6 +27,7 @@
     "webpack-dev-server": "^1.15.1"
   },
   "scripts": {
+    "startDev": "./node_modules/.bin/webpack-dev-server"
   },
   "author": "mcsharma1990@gmail.com",
   "license": "ISC"
