@@ -26,7 +26,7 @@
     "webpack-dev-server": "^1.15.1"
   },
   "scripts": {
-    "start": "./node_modules/.bin/webpack-dev-server"
+    "postinstall": "./node_modules/.bin/webpack"
   },
   "author": "mcsharma1990@gmail.com",
   "license": "ISC"
