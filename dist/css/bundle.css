@@ -1,0 +1,84 @@
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background-color: black;
+  color: white;
+}
+.ts-arena {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  display: flex;
+}
+.ts-arena .ts-game-info {
+  font-family: sans-serif;
+  width: 150px;
+  height: 100%;
+}
+.ts-arena .ts-game-info .ts-game-info-label {
+  font-size: 18px;
+}
+.ts-arena .ts-game-info .ts-current-score {
+  display: flex;
+}
+.ts-arena .ts-game-info .ts-current-score .ts-score-text {
+  margin-top: 3px;
+}
+.ts-arena .ts-game-info .ts-current-score .ts-score-number {
+  font-size: 25px;
+  margin-left: 30px;
+}
+.ts-arena .ts-game-info .ts-next-piece-info {
+  position: relative;
+  margin-top: 50px;
+}
+.ts-board {
+  position: relative;
+  height: 100%;
+  border: 5px solid white;
+  border-radius: 2px;
+  outline: none;
+}
+.ts-board .ts-game-over {
+  left: 15%;
+  top: 45%;
+  position: absolute;
+  font-size: 40px;
+  font-family: sans-serif;
+}
+.ts-board .ts-start-button {
+  position: absolute;
+  left: 33%;
+  top: 27%;
+  width: 100px;
+  height: 30px;
+  font-size: 16px;
+  color: white;
+  background-color: transparent;
+  border: 2px solid red;
+  cursor: pointer;
+  outline: none;
+}
+.ts-board .ts-pause-button {
+  text-align: center;
+  cursor: pointer;
+  font-size: 12px;
+  position: absolute;
+  right: -5px;
+  top: -36px;
+  height: 14px;
+  width: 55px;
+  color: white;
+  background-color: transparent;
+  border: 2px solid white;
+  padding: 3px;
+}
+.ts-block {
+  position: absolute;
+}
+
+/*# sourceMappingURL=bundle.css.map*/
