@@ -7,18 +7,18 @@ interface Props {
     columns: number;
 }
 
+type GameState = 'FRESH' | 'PLAYING' | 'PAUSED' | 'OVER';
+
 interface State {
-    fresh: boolean;
     setBlocks: BlockPosition[];
     curPiecePos: BlockPosition | null;
     curPieceType?: number;
     curPieceRotation?: number;
     curScore: number;
-    isGameOver?: boolean;
     nextPieceIndex?: number;
     animatingRows: number[];
     animationOpacity: number;
-    paused?: boolean;
+    gameState: GameState;
 }
 
 interface BlockPosition {
@@ -26,8 +26,22 @@ interface BlockPosition {
     col: number;
 }
 
+const BLOCK_COLOR = '#ff3434';
+
+const COMPLETING_LINE_COLOR = 'rgb(128, 255, 128)';
+
+// Size of the single building block square.
 const BLOCK_SIZE = 30;
+
+// Take taken by the piece to move one row down.
 const SPEED = 500;
+
+// Opacity to reduce in one step while disappearing a completed row.
+const OPACITY_STEP = 0.05;
+
+// time interval in which disappearing row deduces it's opacity by taken by opacity by OPACITY_STEP
+const LINE_DISAPPEARING_DELAY = 25;
+
 
 export class TetrisBoard extends React.Component<Props, State> {
 
@@ -36,32 +50,32 @@ export class TetrisBoard extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = {
-            fresh: true,
             setBlocks: [],
             curPiecePos: null,
             curScore: 0,
             animatingRows: [],
-            animationOpacity: 1
+            animationOpacity: 1,
+            gameState: 'FRESH'
         };
     }
 
     componentDidMount() {
-        (ReactDOM.findDOMNode(this.refs.tsBoard) as HTMLDivElement).focus();
+        this.focusBoard();
     }
 
     componentDidUpdate() {
-        (ReactDOM.findDOMNode(this.refs.tsBoard) as HTMLDivElement).focus();
+        this.focusBoard();
         if (this.state.animatingRows.length > 0) {
             setTimeout(() => {
-                let newOpacity = Math.max(0, this.state.animationOpacity - 0.1);
-                if (newOpacity < 0.001) {
+                let newOpacity = Math.max(0, this.state.animationOpacity - OPACITY_STEP);
+                if (newOpacity < 1e-9) {
                     this.clearLines();
                 } else {
                     this.setState({
                         animationOpacity: newOpacity
                     });
                 }
-            }, 25);
+            }, LINE_DISAPPEARING_DELAY);
         }
     }
 
@@ -90,22 +104,7 @@ export class TetrisBoard extends React.Component<Props, State> {
             nextPieceDom = this.getBlocksForPiece(this.state.nextPieceIndex, 0, {
                 row: 1,
                 col: colOffset
-            }).map((block) => {
-                let left = block.col * BLOCK_SIZE + (block.col + 1);
-                let top = block.row * BLOCK_SIZE + (block.row + 1);
-                return <div
-                    key={getRandomInteger(0, 1000000000)}
-                    className="ts-block"
-                    style={{
-                        left: left,
-                        top: top,
-                        width: BLOCK_SIZE,
-                        height: BLOCK_SIZE,
-                        backgroundColor: 'red'
-                    }}
-                >
-                </div>;
-            });
+            }).map((block) => this.getSingleBlockDom(block, BLOCK_COLOR, 1.0));
         }
 
         return (
@@ -122,55 +121,80 @@ export class TetrisBoard extends React.Component<Props, State> {
                 </div>
                 <div ref="tsBoard" className="ts-board" tabIndex={0} style={{width: boardWidth}}
                      onKeyDown={(event) => this.onKeyPress(event.keyCode)}>
-                    {this.state.fresh ?
-                        <button className="ts-start-button" title="START"
-                                  onClick={() => this.onStartButtonClick()}>
-                            START
-                        </button> :
-                        <div className="ts-pause-button" onClick={() => this.onPauseButtonClick()}>
-                            {this.state.paused ? 'Resume' : 'Pause'}
-                        </div>
-                    }
+                    {this.getStartButtonDom()}
+                    {this.getPausedButtonDom()}
                     {this.getAllBlocks().map((block) => {
-                        let left = block.col * BLOCK_SIZE + (block.col + 1);
-                        let top = block.row * BLOCK_SIZE + (block.row + 1);
-                        let backgroundColor = 'red';
+                        let backgroundColor = BLOCK_COLOR;
+                        let opacity = 1.0;
                         if (this.state.animatingRows.indexOf(block.row) !== -1) {
-                            backgroundColor = 'rgba(255, 0, 0, ' + this.state.animationOpacity + ')';
+                            backgroundColor = COMPLETING_LINE_COLOR;
+                            opacity = this.state.animationOpacity;
                         }
-                        return (
-                            <div
-                                key={getRandomInteger(0, 1000000000)}
-                                className="ts-block"
-                                style={{
-                                    left: left,
-                                    top: top,
-                                    width: BLOCK_SIZE,
-                                    height: BLOCK_SIZE,
-                                    backgroundColor: backgroundColor
-                                }}
-                            >
-                            </div>
-                        );
+                        return this.getSingleBlockDom(block, backgroundColor, opacity);
                     })}
-                    {this.state.isGameOver ? <div className="ts-game-over">Game Over!</div> : null}
+                    {this.state.gameState === 'OVER' ? <div className="ts-game-over">Game Over!</div> : null}
                 </div>
             </div>
         );
     }
 
+    private getSingleBlockDom(block: BlockPosition, fillColor: string, opacity: number) {
+        let left = block.col * BLOCK_SIZE + (block.col + 1);
+        let top = block.row * BLOCK_SIZE + (block.row + 1);
+        return (
+            <div
+                key={block.row + ':' + block.col}
+                className="ts-block"
+                style={{
+                    left: left,
+                    top: top,
+                    width: BLOCK_SIZE,
+                    height: BLOCK_SIZE,
+                    backgroundColor: fillColor,
+                    opacity: opacity
+                }}
+            >
+            </div>
+        );
+    }
+
+    private getStartButtonDom() {
+        if (this.state.gameState === 'FRESH' || this.state.gameState === 'OVER') {
+            return (
+                <button className="ts-start-button" title="START"
+                        onClick={() => this.onStartButtonClick()}>
+                    {this.state.gameState === 'FRESH' ? 'Start' : 'Replay'}
+                </button>
+            );
+        }
+        return null;
+    }
+
+    private focusBoard(): void {
+        (ReactDOM.findDOMNode(this.refs.tsBoard) as HTMLDivElement).focus();
+    }
+
     private onStartButtonClick() {
-        this.setState({fresh: false}, () => {
+        this.setState({
+            gameState: 'PLAYING',
+            setBlocks: [],
+            curPiecePos: null,
+            curScore: 0
+        }, () => {
             this.callEveryNMs(() => {
                 return this.updateBoard();
             }, SPEED);
-        })
+        });
     }
 
     private onPauseButtonClick() {
-        this.setState({
-            paused: !this.state.paused
-        });
+        let gameState = this.state.gameState;
+        if (gameState === 'PLAYING' || gameState === 'PAUSED') {
+            let newGameState: GameState = gameState === 'PLAYING' ? 'PAUSED' : 'PLAYING';
+            this.setState({
+                gameState: newGameState
+            });
+        }
     }
 
     private getAllBlocks() {
@@ -198,7 +222,7 @@ export class TetrisBoard extends React.Component<Props, State> {
     }
 
     private updateBoard(): boolean {
-        if (this.state.paused) {
+        if (this.state.gameState === 'PAUSED') {
             return true;
         }
         if (this.canMoveDown()) {
@@ -242,7 +266,7 @@ export class TetrisBoard extends React.Component<Props, State> {
             this.setState({
                 setBlocks: newSetBlocks,
                 curPiecePos: null,
-                isGameOver: true
+                gameState: 'OVER'
             });
             return false;
         }
@@ -418,9 +442,21 @@ export class TetrisBoard extends React.Component<Props, State> {
             }
         }
     }
+
+    private getPausedButtonDom() {
+        if (this.state.gameState === 'PAUSED' || this.state.gameState === 'PLAYING') {
+            return (
+                <div className="ts-pause-button" onClick={() => this.onPauseButtonClick()}>
+                    {this.state.gameState === 'PAUSED' ? 'Resume' : 'Pause'}
+                </div>
+            );
+        }
+
+        return null;
+    }
 }
 
-// Configurtation of all pieces for all 4 rotations.
+// Configuration of all pieces for all 4 rotations.
 let pieces = [
     // square
     [
