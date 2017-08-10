@@ -93,32 +93,40 @@
 	var React = __webpack_require__(1);
 	var ReactDOM = __webpack_require__(2);
 	var _ = __webpack_require__(8);
+	var BLOCK_COLOR = '#ff3434';
+	var COMPLETING_LINE_COLOR = 'rgb(128, 255, 128)';
+	// Size of the single building block square.
 	var BLOCK_SIZE = 30;
+	// Take taken by the piece to move one row down.
 	var SPEED = 500;
+	// Opacity to reduce in one step while disappearing a completed row.
+	var OPACITY_STEP = 0.05;
+	// time interval in which disappearing row deduces it's opacity by taken by opacity by OPACITY_STEP
+	var LINE_DISAPPEARING_DELAY = 25;
 	var TetrisBoard = (function (_super) {
 	    __extends(TetrisBoard, _super);
 	    function TetrisBoard(props) {
 	        var _this = _super.call(this, props) || this;
 	        _this.state = {
-	            fresh: true,
 	            setBlocks: [],
 	            curPiecePos: null,
 	            curScore: 0,
 	            animatingRows: [],
-	            animationOpacity: 1
+	            animationOpacity: 1,
+	            gameState: 'FRESH'
 	        };
 	        return _this;
 	    }
 	    TetrisBoard.prototype.componentDidMount = function () {
-	        ReactDOM.findDOMNode(this.refs.tsBoard).focus();
+	        this.focusBoard();
 	    };
 	    TetrisBoard.prototype.componentDidUpdate = function () {
 	        var _this = this;
-	        ReactDOM.findDOMNode(this.refs.tsBoard).focus();
+	        this.focusBoard();
 	        if (this.state.animatingRows.length > 0) {
 	            setTimeout(function () {
-	                var newOpacity = Math.max(0, _this.state.animationOpacity - 0.1);
-	                if (newOpacity < 0.001) {
+	                var newOpacity = Math.max(0, _this.state.animationOpacity - OPACITY_STEP);
+	                if (newOpacity < 1e-9) {
 	                    _this.clearLines();
 	                }
 	                else {
@@ -126,7 +134,7 @@
 	                        animationOpacity: newOpacity
 	                    });
 	                }
-	            }, 25);
+	            }, LINE_DISAPPEARING_DELAY);
 	        }
 	    };
 	    TetrisBoard.prototype.componentWillUnmount = function () {
@@ -154,17 +162,7 @@
 	            nextPieceDom = this.getBlocksForPiece(this.state.nextPieceIndex, 0, {
 	                row: 1,
 	                col: colOffset
-	            }).map(function (block) {
-	                var left = block.col * BLOCK_SIZE + (block.col + 1);
-	                var top = block.row * BLOCK_SIZE + (block.row + 1);
-	                return React.createElement("div", { key: getRandomInteger(0, 1000000000), className: "ts-block", style: {
-	                        left: left,
-	                        top: top,
-	                        width: BLOCK_SIZE,
-	                        height: BLOCK_SIZE,
-	                        backgroundColor: 'red'
-	                    } });
-	            });
+	            }).map(function (block) { return _this.getSingleBlockDom(block, BLOCK_COLOR, 1.0); });
 	        }
 	        return (React.createElement("div", { className: "ts-arena", style: arenaStyle },
 	            React.createElement("div", { className: "ts-game-info" },
@@ -175,38 +173,62 @@
 	                    React.createElement("div", { className: "ts-game-info-label" }, "Next:"),
 	                    nextPieceDom)),
 	            React.createElement("div", { ref: "tsBoard", className: "ts-board", tabIndex: 0, style: { width: boardWidth }, onKeyDown: function (event) { return _this.onKeyPress(event.keyCode); } },
-	                this.state.fresh ?
-	                    React.createElement("button", { className: "ts-start-button", title: "START", onClick: function () { return _this.onStartButtonClick(); } }, "START") :
-	                    React.createElement("div", { className: "ts-pause-button", onClick: function () { return _this.onPauseButtonClick(); } }, this.state.paused ? 'Resume' : 'Pause'),
+	                this.getStartButtonDom(),
+	                this.getPausedButtonDom(),
 	                this.getAllBlocks().map(function (block) {
-	                    var left = block.col * BLOCK_SIZE + (block.col + 1);
-	                    var top = block.row * BLOCK_SIZE + (block.row + 1);
-	                    var backgroundColor = 'red';
+	                    var backgroundColor = BLOCK_COLOR;
+	                    var opacity = 1.0;
 	                    if (_this.state.animatingRows.indexOf(block.row) !== -1) {
-	                        backgroundColor = 'rgba(255, 0, 0, ' + _this.state.animationOpacity + ')';
+	                        backgroundColor = COMPLETING_LINE_COLOR;
+	                        opacity = _this.state.animationOpacity;
 	                    }
-	                    return (React.createElement("div", { key: getRandomInteger(0, 1000000000), className: "ts-block", style: {
-	                            left: left,
-	                            top: top,
-	                            width: BLOCK_SIZE,
-	                            height: BLOCK_SIZE,
-	                            backgroundColor: backgroundColor
-	                        } }));
+	                    return _this.getSingleBlockDom(block, backgroundColor, opacity);
 	                }),
-	                this.state.isGameOver ? React.createElement("div", { className: "ts-game-over" }, "Game Over!") : null)));
+	                this.state.gameState === 'OVER' ? React.createElement("div", { className: "ts-game-over" }, "Game Over!") : null)));
+	    };
+	    TetrisBoard.prototype.getSingleBlockDom = function (block, fillColor, opacity) {
+	        var left = block.col * BLOCK_SIZE + (block.col + 1);
+	        var top = block.row * BLOCK_SIZE + (block.row + 1);
+	        return (React.createElement("div", { key: block.row + ':' + block.col, className: "ts-block", style: {
+	                left: left,
+	                top: top,
+	                width: BLOCK_SIZE,
+	                height: BLOCK_SIZE,
+	                backgroundColor: fillColor,
+	                opacity: opacity
+	            } }));
+	    };
+	    TetrisBoard.prototype.getStartButtonDom = function () {
+	        var _this = this;
+	        if (this.state.gameState === 'FRESH' || this.state.gameState === 'OVER') {
+	            return (React.createElement("button", { className: "ts-start-button", title: "START", onClick: function () { return _this.onStartButtonClick(); } }, this.state.gameState === 'FRESH' ? 'Start' : 'Replay'));
+	        }
+	        return null;
+	    };
+	    TetrisBoard.prototype.focusBoard = function () {
+	        ReactDOM.findDOMNode(this.refs.tsBoard).focus();
 	    };
 	    TetrisBoard.prototype.onStartButtonClick = function () {
 	        var _this = this;
-	        this.setState({ fresh: false }, function () {
+	        this.setState({
+	            gameState: 'PLAYING',
+	            setBlocks: [],
+	            curPiecePos: null,
+	            curScore: 0
+	        }, function () {
 	            _this.callEveryNMs(function () {
 	                return _this.updateBoard();
 	            }, SPEED);
 	        });
 	    };
 	    TetrisBoard.prototype.onPauseButtonClick = function () {
-	        this.setState({
-	            paused: !this.state.paused
-	        });
+	        var gameState = this.state.gameState;
+	        if (gameState === 'PLAYING' || gameState === 'PAUSED') {
+	            var newGameState = gameState === 'PLAYING' ? 'PAUSED' : 'PLAYING';
+	            this.setState({
+	                gameState: newGameState
+	            });
+	        }
 	    };
 	    TetrisBoard.prototype.getAllBlocks = function () {
 	        return this.state.setBlocks.concat(this.getCurrentPieceBlocks());
@@ -226,7 +248,7 @@
 	        });
 	    };
 	    TetrisBoard.prototype.updateBoard = function () {
-	        if (this.state.paused) {
+	        if (this.state.gameState === 'PAUSED') {
 	            return true;
 	        }
 	        if (this.canMoveDown()) {
@@ -263,7 +285,7 @@
 	            this.setState({
 	                setBlocks: newSetBlocks,
 	                curPiecePos: null,
-	                isGameOver: true
+	                gameState: 'OVER'
 	            });
 	            return false;
 	        }
@@ -423,10 +445,17 @@
 	            }
 	        }
 	    };
+	    TetrisBoard.prototype.getPausedButtonDom = function () {
+	        var _this = this;
+	        if (this.state.gameState === 'PAUSED' || this.state.gameState === 'PLAYING') {
+	            return (React.createElement("div", { className: "ts-pause-button", onClick: function () { return _this.onPauseButtonClick(); } }, this.state.gameState === 'PAUSED' ? 'Resume' : 'Pause'));
+	        }
+	        return null;
+	    };
 	    return TetrisBoard;
 	}(React.Component));
 	exports.TetrisBoard = TetrisBoard;
-	// Configurtation of all pieces for all 4 rotations.
+	// Configuration of all pieces for all 4 rotations.
 	var pieces = [
 	    // square
 	    [
