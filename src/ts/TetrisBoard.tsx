@@ -418,8 +418,8 @@ export class TetrisBoard extends React.Component<Props, State> {
         if (this.state.curPiecePos === null) {
             return;
         }
-        // rotate!
-        if (keyCode === 82) {
+        // Up arrow key!
+        if (keyCode === 38) {
             if (this.canRotate()) {
                 this.setState({
                     curPieceRotation: (this.state.curPieceRotation as number + 1) % 4
